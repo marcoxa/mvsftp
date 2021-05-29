@@ -104,7 +104,10 @@ char * strupr (char * s) {
 #define FAKE_USER  "user"
 #define FAKE_GROUP "group"
  
-#define WELCOME_MESSAGE  "*** MVS38j FTP Daemon on MVS (TK4-) ***"
+// #define WELCOME_MESSAGE  "*** MVS38j FTP Daemon on MVS (TK4-) ***"
+
+#define WELCOME_MESSAGE \
+    "FTP000I MVS38j FTP Daemon on MVS 3.8 on port %d"
  
 #define LOGIN_MESSAGE    "You are now logged in."
  
@@ -128,11 +131,13 @@ char   SERVER_IP [16];
 struct tm * td;
 time_t lt;
 char   wtomsg [126];
+
  
 extern unsigned int rac_user_login (char * user, char * pass);
 extern unsigned int rac_user_logout (unsigned int acee);
 extern unsigned int rac_switch_user (unsigned int acee);
 extern void rac_ftp_auth (unsigned int state);
+
  
 void user_logout (unsigned int acee, char * user) {
     rac_user_logout ((unsigned int) &acee);
@@ -1394,8 +1399,22 @@ static char * ftp_server_msg (long code, char * message) {
  */
 static data_tag_ptr new_ftp_data (SOCKET SOCK) {
     char *       s;
-    data_tag_ptr data;
- 
+    data_tag_ptr data;	 
+    int          server_ip_len = strlen(SERVER_IP);
+    char *       welcome_msg;
+
+    welcome_msg =
+	(char *) calloc(sizeof(char),
+			strlen(WELCOME_MESSAGE) /* It will work */
+			+ server_ip_len
+			+ 1);
+
+    if (welcome_msg == (char *) NULL) {
+	fprintf(stderr, "!!! calloc failed.\n");
+    } else {
+	sprintf(welcome_msg, WELCOME_MESSAGE, SERVER_PORT);
+    }
+
     data = malloc (sizeof (data_t));
  
     data->use_count = 0;
@@ -1409,9 +1428,12 @@ static data_tag_ptr new_ftp_data (SOCKET SOCK) {
     data->READ_BUF_LENGTH = 0;
  
     data->WRITE_BUF = (char *)malloc ((MAXBUFLEN * 2) + 1);
-    s = ftp_server_msg (220, WELCOME_MESSAGE);
+
+    s = ftp_server_msg (220, welcome_msg);
     strcpy (data->WRITE_BUF, s);
     free (s);
+    free(welcome_msg);
+    
     data->WRITE_BUF_LENGTH = strlen (data->WRITE_BUF);
  
     data->ACEE = 0;
@@ -2032,7 +2054,7 @@ static void refresh () {
  * returns 1 on success,
  * and a -1 if the directory doesn't exist
  * or -2 if it's not really a directory
-*/
+ */
 static long ftp_chdir (data_tag_ptr data, char * cd_into) {
     char * new_cwd;
     char * s;

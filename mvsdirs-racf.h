@@ -193,6 +193,7 @@ static int getorg (char * name) { // Not found? rc=0
     return (MVS_DSORG_UNKNOWN);
 }
 
+
 static long _ftp_i = 1;
 static char _ftp_ly [250]; // 1970-2220
 
@@ -228,6 +229,7 @@ static long leapdays (long year) {
 
     return (i);
 }
+
 
 static long readvtoc (char * device, char * unit, p_root rt) {
     // rt is the newroot
